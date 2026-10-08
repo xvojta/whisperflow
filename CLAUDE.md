@@ -8,7 +8,10 @@ Vzniklo 5. 10. 2026.
 
 | Cesta | Co to je |
 |---|---|
-| `whisperflow.py` | Celá aplikace, jen stdlib Pythonu (žádný pip). Příkazy `toggle` / `cancel`. |
+| `whisperflow_core.py` | Společné jádro (config, přepis, LLM, `run_pipeline`), jen stdlib Pythonu (žádný pip). |
+| `whisperflow.py` | Linux: skript pro GNOME zkratku, příkazy `toggle` / `cancel`. |
+| `whisperflow_win.py`, `install.ps1` | Windows port: proces na pozadí (RegisterHotKey, MCI nahrávání, tkinter okénko bez fokusu), výchozí Ctrl+Alt+H. **Netestováno na skutečných Windows** (vzniklo 8. 10. 2026). |
+| `README.md`, `config.example.toml` | Instalace pro ostatní. Do vzoru nedávat osobní `vocabulary`. |
 | `prompt.md` | Systémový prompt pro LLM (formátovač diktátu, česky, s příklady). |
 | `install-shortcuts.sh` | Nastaví GNOME zkratky. Spusť znovu, když přesuneš adresář. |
 | `~/.config/whisperflow/config.toml` | Konfigurace a API klíč (chmod 600). |
@@ -54,6 +57,8 @@ tail -f ~/.local/state/whisperflow/log
 # Přehrát poslední nahrávku znovu celou cestou:
 cp $XDG_RUNTIME_DIR/whisperflow/last.wav $XDG_RUNTIME_DIR/whisperflow/recording.wav
 python3 -c "import sys; sys.argv=['x']; import whisperflow as w; w.process(w.load_config())"
+# Bez schránky a notifikací (jen jádro):
+python3 -c "import sys; sys.argv=['x']; import whisperflow as w, whisperflow_core as c; from pathlib import Path; c.run_pipeline(w.load_config(), Path('$XDG_RUNTIME_DIR/whisperflow/last.wav'), print, print, str)"
 ```
 
 ## Rozhodnutí a poučení
@@ -65,7 +70,8 @@ python3 -c "import sys; sys.argv=['x']; import whisperflow as w; w.process(w.loa
 - **Slovník s nápovědou:** u slov, která přepis slyší jako jiné *smysluplné* slovo („CLAUDE.md“ → „cloud.md“), samotný termín nestačí. Pomůže položka s nápovědou, např. `"CLAUDE.md (přepis ho často zkomolí na „cloud.md“ – vždy piš CLAUDE.md)"`.
 - **Ticho = ozvěna promptu:** na tichou nahrávku `gpt-4o-mini-transcribe` místo přepisu vrátí vlastní `prompt` (ukázkovou větu a slovník). Stalo se to, když byl výchozím vstupem USB adaptér „Unitek Y-247A“ bez mikrofonu. Proti tomu jsou dvě pojistky: kontrola špičky (`silence_peak_db = -50`, pod tou hranicí se nic neodešle a notifikace ukáže název zdroje) a zahození přepisu, který obsahuje `whisper_prompt`. Nápovědy v závorkách ze `vocabulary` jdou jen do LLM, přepisový model dostává čisté termíny.
 - **Luna bez thinkingu:** `reasoning.effort = "none"`. Výchozí `medium` přidal zhruba 160 reasoning tokenů a u delšího diktátu 4,4 s místo 1,7 s, přičemž výstup byl stejně kvalitní. Model nepodporuje `minimal`.
-- **Vkládání textu:** na GNOME/Waylandu jde automatický Ctrl+V jen přes `ydotool` (potřebuje root a `/dev/uinput`). Uživatel zvolil schránku a notifikaci.
+- **Vkládání textu:** na GNOME/Waylandu jde automatický Ctrl+V jen přes `ydotool` (potřebuje root a `/dev/uinput`). Uživatel zvolil schránku a notifikaci. Na Windows to jde snadno (`paste = true`, výchozí vypnuto).
+- **Windows: Win+H nejde**, je to systémové hlasové psaní. Ctrl+Alt = AltGr na české klávesnici (AltGr+H nic nepíše). Okénko stavu nesmí brát fokus (`WS_EX_NOACTIVATE`, `SW_SHOWNOACTIVATE`), jinak Ctrl+V skončí v něm. MCI píše WAV s jinou hlavičkou než 44 B, proto `wav_pcm` hledá chunk `data`.
 - **Super+H** je v GNOME výchozí zkratka „minimalizovat okno“. `install-shortcuts.sh` ji vypíná (`org.gnome.desktop.wm.keybindings minimize = []`).
 - **Inspirace pro prompt:** systémový prompt VoiceInk (open source), příklady podle Superwhisperu a čištění oprav v řeči podle Wispr Flow. [drajb/whisper-local](https://github.com/drajb/whisper-local) se nehodí, protože podporuje jen Windows a macOS a LLM má jen přes Ollamu.
 - Adresář je samostatné git repo → soukromé [xvojta/whisperflow](https://github.com/xvojta/whisperflow). Leží uvnitř cizího repa (WordPress plugin v `~/Documents`), které ho ignoruje přes `.git/info/exclude`. **Do rodičovského repa necommitovat.**

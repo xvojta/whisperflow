@@ -1,0 +1,34 @@
+# Whisperflow – vzorová konfigurace. Zkopíruj jako:
+#   Linux:   ~/.config/whisperflow/config.toml       (pak chmod 600)
+#   Windows: %APPDATA%\whisperflow\config.toml
+# Povinný je jen api_key, zbytek má výchozí hodnoty uvedené níže.
+
+api_key = "sk-..."                     # OpenAI API klíč (nebo proměnná OPENAI_API_KEY)
+
+# --- Přepis řeči ---
+transcribe_model = "gpt-4o-mini-transcribe"
+language = "cs"                        # "auto" = autodetekce jazyka
+# whisper_prompt = "Ahoj, posílám shrnutí. Zítra v 10:00 máme schůzku, prosím, připrav podklady."
+# silence_peak_db = -50                # tišší nahrávka se neodešle (mikrofon nic nezachytil)
+
+# --- Úprava textu LLM (interpunkce, vycpávky, seznamy) ---
+model = "gpt-6-luna"                   # musí ho tvůj OpenAI účet umět; jinak třeba "gpt-4.1-mini"
+reasoning_effort = "none"              # none|low|medium|high – pro jiné modely možná smazat
+# structure = false                    # bez LLM: do schránky jde surový přepis
+# prompt_file = "..."                  # vlastní prompt; jinak prompt.md vedle configu, pak vedle skriptu
+
+# Jména a termíny, které přepis komolí. Jdou do přepisu i do LLM.
+# Když přepis slovo slyší jako jiné smysluplné slovo, přidej nápovědu do závorky (ta jde jen do LLM).
+vocabulary = [
+  "Kubernetes",
+  "Jana Nováková",
+  "README.md (přepis ho často zkomolí na „rýdmí“ – vždy piš README.md)",
+]
+
+# base_url = "https://api.openai.com/v1"
+# timeout = 60
+
+# --- Jen Windows ---
+# hotkey_toggle = "ctrl+alt+h"         # alt|ctrl|shift|win + písmeno/číslice/space/F1–F24
+# hotkey_cancel = "ctrl+alt+shift+h"
+# paste = false                        # true = výsledek rovnou vloží (Ctrl+V) do aktivního okna
