@@ -68,4 +68,4 @@ python3 -c "import sys; sys.argv=['x']; import whisperflow as w; w.process(w.loa
 - **Vkládání textu:** na GNOME/Waylandu jde automatický Ctrl+V jen přes `ydotool` (potřebuje root a `/dev/uinput`). Uživatel zvolil schránku a notifikaci.
 - **Super+H** je v GNOME výchozí zkratka „minimalizovat okno“. `install-shortcuts.sh` ji vypíná (`org.gnome.desktop.wm.keybindings minimize = []`).
 - **Inspirace pro prompt:** systémový prompt VoiceInk (open source), příklady podle Superwhisperu a čištění oprav v řeči podle Wispr Flow. [drajb/whisper-local](https://github.com/drajb/whisper-local) se nehodí, protože podporuje jen Windows a macOS a LLM má jen přes Ollamu.
-- Adresář leží uvnitř cizího git repa (WordPress plugin v `~/Documents`). **Necommitovat tam.**
+- Adresář je samostatné git repo → soukromé [xvojta/whisperflow](https://github.com/xvojta/whisperflow). Leží uvnitř cizího repa (WordPress plugin v `~/Documents`), které ho ignoruje přes `.git/info/exclude`. **Do rodičovského repa necommitovat.**
