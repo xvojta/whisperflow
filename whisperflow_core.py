@@ -108,8 +108,10 @@ def structure(cfg: dict, text: str) -> str:
     """Pošle přepis na OpenAI Responses API a vrátí strukturovaný text."""
     instructions = cfg["prompt"] + "\n<SLOVNÍK>\n" + "\n".join(cfg["vocabulary"]) + "\n</SLOVNÍK>"
     user_input = f"<PŘEPIS>\n{text}\n</PŘEPIS>"
-    body = json.dumps({"model": cfg["model"], "instructions": instructions, "input": user_input,
-                       "reasoning": {"effort": cfg["reasoning_effort"]}}).encode()
+    payload = {"model": cfg["model"], "instructions": instructions, "input": user_input}
+    if cfg["reasoning_effort"]:  # prázdné = neposílat (modely bez reasoningu parametr odmítnou)
+        payload["reasoning"] = {"effort": cfg["reasoning_effort"]}
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(
         cfg["base_url"].rstrip("/") + "/responses", data=body, method="POST",
         headers={"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"},

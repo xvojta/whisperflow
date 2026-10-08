@@ -12,7 +12,7 @@ Podporované systémy jsou **Linux s GNOME na Waylandu** a **Windows 10/11**.
 ## Co potřebuješ
 
 1. **OpenAI API klíč** z [platform.openai.com](https://platform.openai.com/api-keys) s nabitým kreditem.
-2. **Přístup k modelu `gpt-6-luna`.** Pokud ho tvůj účet nemá, nastav v configu jiný model (třeba `model = "gpt-4.1-mini"`, `reasoning_effort` pak smaž). Případně dej `structure = false` a do schránky půjde surový přepis.
+2. **Přístup k modelu `gpt-6-luna`.** Pokud ho tvůj účet nemá, nastav v configu jiný model (třeba `model = "gpt-4.1-mini"` a `reasoning_effort = ""`). Případně dej `structure = false` a do schránky půjde surový přepis.
 
 ## Instalace – Windows
 
@@ -35,9 +35,10 @@ Stav ukazuje malé okénko vpravo dole. Fokus nebere, takže Ctrl+V vloží text
 
 - **Jiná zkratka:** nastav `hotkey_toggle` a `hotkey_cancel` v configu. Win+H to být nemůže, protože tu Windows používá pro vlastní hlasové psaní.
 - **Automatické vložení:** `paste = true` vloží výsledek rovnou do aktivního okna.
-- **Ukončení:** `pythonw whisperflow_win.py quit`. Odinstalace: `install.ps1 -Uninstall`.
+- **Změny configu** platí od další nahrávky. Jen nové zkratky vyžadují restart (`install.ps1` znovu).
+- **Ukončení:** `pyw whisperflow_win.py quit`. Odinstalace: `install.ps1 -Uninstall`.
 - **Log a poslední nahrávka:** `%LOCALAPPDATA%\whisperflow\` (`log.txt`, `last.wav`, `last.txt`).
-- **Ladění:** spusť `python whisperflow_win.py` (s konzolí). Chyby pak uvidíš přímo.
+- **Ladění:** spusť `py whisperflow_win.py` (s konzolí). Chyby pak uvidíš přímo.
 
 ## Instalace – Linux (GNOME, Wayland)
 

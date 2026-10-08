@@ -127,11 +127,12 @@ def stop_recording(save: bool) -> None:
 
 # ---------- schránka a vložení ----------
 
-def copy_to_clipboard(text: str) -> None:
+def copy_to_clipboard(text: str, owner_hwnd=None) -> None:
     (STATE_DIR / "last.txt").write_text(text, encoding="utf-8")  # záloha – text se nesmí ztratit
     data = text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-16-le") + b"\0\0"
     for _ in range(20):  # schránku může mít zrovna otevřenou jiná aplikace
-        if user32.OpenClipboard(None):
+        # vlastník musí být okno, s NULL může SetClipboardData po EmptyClipboard selhat
+        if user32.OpenClipboard(owner_hwnd):
             break
         time.sleep(0.05)
     else:
@@ -247,6 +248,14 @@ class Overlay:
 # ---------- aplikace ----------
 
 class App:
+    def reload_config(self) -> None:
+        """Jako na Linuxu: config (slovník, model…) platí od další nahrávky. Zkratky jen po restartu."""
+        try:
+            self.cfg = core.load_config(CONFIG_PATH, os.environ.get("OPENAI_API_KEY", ""), WIN_DEFAULTS)
+        except Exception as e:
+            log.exception("konfigurace")
+            self.overlay.show("⚠ Chyba v config.toml, používám předchozí", str(e)[:300], urgency="critical")
+
     def __init__(self, cfg: dict, quit_event):
         self.cfg = cfg
         self.quit_event = quit_event
@@ -308,6 +317,7 @@ class App:
             elif self.worker and self.worker.is_alive():
                 self.overlay.show("⏳ Ještě zpracovávám předchozí nahrávku…", timeout_ms=2000)
             else:
+                self.reload_config()
                 start_recording()
                 self.recording = True
                 self.overlay.show("🎙 Nahrávám…", f"{self.cfg['hotkey_toggle']} = hotovo · "
@@ -315,7 +325,7 @@ class App:
 
     def process(self) -> None:
         def copy(text: str) -> None:
-            copy_to_clipboard(text)
+            copy_to_clipboard(text, self.overlay.hwnd)
             if self.cfg["paste"]:
                 time.sleep(0.1)
                 send_ctrl_v()

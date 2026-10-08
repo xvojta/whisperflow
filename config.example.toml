@@ -3,7 +3,7 @@
 #   Windows: %APPDATA%\whisperflow\config.toml
 # Povinný je jen api_key, zbytek má výchozí hodnoty uvedené níže.
 
-api_key = "sk-..."                     # OpenAI API klíč (nebo proměnná OPENAI_API_KEY)
+api_key = ""                           # OpenAI API klíč "sk-..." (prázdné = proměnná OPENAI_API_KEY)
 
 # --- Přepis řeči ---
 transcribe_model = "gpt-4o-mini-transcribe"
@@ -13,7 +13,7 @@ language = "cs"                        # "auto" = autodetekce jazyka
 
 # --- Úprava textu LLM (interpunkce, vycpávky, seznamy) ---
 model = "gpt-6-luna"                   # musí ho tvůj OpenAI účet umět; jinak třeba "gpt-4.1-mini"
-reasoning_effort = "none"              # none|low|medium|high – pro jiné modely možná smazat
+reasoning_effort = "none"              # none|low|medium|high; "" = neposílat (nutné u modelů bez reasoningu)
 # structure = false                    # bez LLM: do schránky jde surový přepis
 # prompt_file = "..."                  # vlastní prompt; jinak prompt.md vedle configu, pak vedle skriptu
 
@@ -28,7 +28,7 @@ vocabulary = [
 # base_url = "https://api.openai.com/v1"
 # timeout = 60
 
-# --- Jen Windows ---
+# --- Jen Windows (změna zkratek vyžaduje restart, zbytek configu se načte při každé nahrávce) ---
 # hotkey_toggle = "ctrl+alt+h"         # alt|ctrl|shift|win + písmeno/číslice/space/F1–F24
 # hotkey_cancel = "ctrl+alt+shift+h"
 # paste = false                        # true = výsledek rovnou vloží (Ctrl+V) do aktivního okna

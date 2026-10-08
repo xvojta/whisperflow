@@ -35,7 +35,8 @@ New-Item -ItemType Directory -Force $cfgDir | Out-Null
 if (-not (Test-Path $cfg)) {
     Copy-Item (Join-Path $here "config.example.toml") $cfg
     Write-Host "Vytvořil jsem $cfg - doplň do něj api_key a ulož."
-    Start-Process notepad $cfg -Wait
+    Start-Process notepad $cfg
+    Read-Host "Po uložení konfigurace stiskni Enter"
 }
 
 $ws = New-Object -ComObject WScript.Shell
