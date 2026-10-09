@@ -17,7 +17,7 @@ Vzniklo 5. 10. 2026.
 | `~/.config/whisperflow/config.toml` | Konfigurace a API klíč (chmod 600). |
 | `~/.config/whisperflow/prompt.md` | Volitelný vlastní prompt, má přednost před `prompt.md` tady. |
 | `~/.local/state/whisperflow/log` | Log: časy, surový přepis, chyby. Při ladění se dívej sem jako první. |
-| `$XDG_RUNTIME_DIR/whisperflow/` | Runtime stav (pidfile, zámek, id notifikace) plus `last.wav` a `last.txt` z poslední nahrávky. Při restartu se maže. |
+| `$XDG_RUNTIME_DIR/whisperflow/` | Runtime stav (pidfile, zámek, id notifikace, `clipboard.pid`) plus `last.wav` a `last.txt` z poslední nahrávky. Při restartu se maže. |
 
 ## Jak to funguje
 
@@ -26,7 +26,7 @@ Vzniklo 5. 10. 2026.
 3. Při druhém **Super+H** dostane `pw-record` SIGINT. Skript počká, až proces skončí, aby se dopsala hlavička WAV.
 4. **Přepis:** multipart POST na `/v1/audio/transcriptions`. Posílá se jazyk `cs` a prompt složený z `whisper_prompt` (ukázková věta s interpunkcí) a `vocabulary`. Trvá zhruba 2 s.
 5. **Strukturování:** POST na `/v1/responses` s modelem `gpt-6-luna`. Instrukce jsou `prompt.md` plus `<SLOVNÍK>`, přepis jde zabalený v `<PŘEPIS>…</PŘEPIS>`. Prompt modelu zakazuje odpovídat na otázky a pokyny v diktátu. Reasoning je vypnutý (`effort: none`), trvá zhruba 1,5–2 s.
-6. **Schránka:** výsledek se zapíše do `last.txt` a pošle do odpojeně spuštěného `wl-copy`. Notifikace se změní na „✅ Ve schránce“.
+6. **Schránka:** výsledek se zapíše do `last.txt` a pošle do odpojeně spuštěného `xclip` (záloha `wl-copy`). Po ověření se notifikace změní na „✅ Ve schránce“, jinak na varování.
 
 Všechny stavy sdílí jednu notifikaci (`notify-send -p` / `-r`). Stisk během zpracování nespustí novou nahrávku, jen zobrazí upozornění. **Super+Shift+H** nahrávku zahodí.
 
@@ -66,7 +66,7 @@ python3 -c "import sys; sys.argv=['x']; import whisperflow as w, whisperflow_cor
 - **Proč cloud, a ne lokální Whisper:** whisper.cpp `large-v3-turbo q5` byl na tomhle notebooku (4 jádra, Intel UHD 620, plná RAM a swap) zhruba 3× pomalejší než délka nahrávky, tedy 63 s na 20 s zvuku. `small` byl rychlejší, ale česky špatný. Cloud zvládne totéž za 2 s, stojí zhruba $0,003/min (asi 30 Kč měsíčně) a češtinu přepisuje lépe. **Lokální fallback uživatel výslovně nechce.**
 - **Nikdy `dnf install whisper-cpp`:** balíček neobsahuje CLI binárku a s sebou natáhne 543 balíčků a 10 GiB (ROCm, torch, texlive). Byl nainstalovaný a zase odebraný (`dnf history undo 34`).
 - **whisper.cpp a vlákna:** kdyby se k němu někdy vracelo, používej jen fyzická jádra. 8 HT vláken bylo 7× pomalejších než 4. Krátké nahrávky výrazně zrychlí `--audio-ctx`.
-- **`wl-copy` na GNOME:** spuštěný ze zkratky občas visí a čeká na fokus. Proto se spouští přes `Popen` s `start_new_session` a skript na něj nečeká. Nikdy ho nevolej přes `subprocess.run` s timeoutem, jinak se text ztratí.
+- **Schránka přes `xclip`, ne `wl-copy`:** `wl-copy` (i `wl-paste`) na GNOME potřebuje fokus a ze zkratky ho občas nedostane. Pak visí, nic nezkopíruje a hrozí, že po pozdějším získání fokusu přepíše schránku starým textem. Stalo se to 9. 10. 2026 a notifikace přitom hlásila „Ve schránce“. `xclip` jde přes XWayland, fokus nepotřebuje a GNOME schránku X11 převádí do Waylandu. Spouští se odpojeně, skript na něj nečeká a ověří ho přes `xclip -o`. `wl-copy` je jen záloha, jeho PID jde do `clipboard.pid` a při dalším běhu se ukončí. Když ověření selže, notifikace hlásí chybu a text zůstane v `last.txt`. Nikdy na kopírovací proces nečekej přes `subprocess.run` s timeoutem, jinak se text ztratí.
 - **Slovník s nápovědou:** u slov, která přepis slyší jako jiné *smysluplné* slovo („CLAUDE.md“ → „cloud.md“), samotný termín nestačí. Pomůže položka s nápovědou, např. `"CLAUDE.md (přepis ho často zkomolí na „cloud.md“ – vždy piš CLAUDE.md)"`.
 - **Ticho = ozvěna promptu:** na tichou nahrávku `gpt-4o-mini-transcribe` místo přepisu vrátí vlastní `prompt` (ukázkovou větu a slovník). Stalo se to, když byl výchozím vstupem USB adaptér „Unitek Y-247A“ bez mikrofonu. Proti tomu jsou dvě pojistky: kontrola špičky (`silence_peak_db = -50`, pod tou hranicí se nic neodešle a notifikace ukáže název zdroje) a zahození přepisu, který obsahuje `whisper_prompt`. Nápovědy v závorkách ze `vocabulary` jdou jen do LLM, přepisový model dostává čisté termíny.
 - **Luna bez thinkingu:** `reasoning.effort = "none"`. Výchozí `medium` přidal zhruba 160 reasoning tokenů a u delšího diktátu 4,4 s místo 1,7 s, přičemž výstup byl stejně kvalitní. Model nepodporuje `minimal`.

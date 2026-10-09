@@ -44,9 +44,9 @@ Stav ukazuje malé okénko vpravo dole. Fokus nebere, takže Ctrl+V vloží text
 
 1. Doinstaluj nástroje pro nahrávání, schránku a notifikace (Fedora):
    ```bash
-   sudo dnf install pipewire-utils wl-clipboard libnotify
+   sudo dnf install pipewire-utils xclip wl-clipboard libnotify
    ```
-   Na Ubuntu/Debianu jsou to balíčky `pipewire-bin`, `wl-clipboard` a `libnotify-bin`.
+   Na Ubuntu/Debianu jsou to balíčky `pipewire-bin`, `xclip`, `wl-clipboard` a `libnotify-bin`.
 2. Naklonuj repo, připrav config a nastav zkratky:
    ```bash
    git clone https://github.com/xvojta/whisperflow.git ~/whisperflow

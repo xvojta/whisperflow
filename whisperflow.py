@@ -8,6 +8,7 @@ Použití:
 import logging
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -23,6 +24,7 @@ PID_FILE = STATE_DIR / "recording.pid"
 LOCK_FILE = STATE_DIR / "processing.lock"
 NOTIFY_ID_FILE = STATE_DIR / "notify.id"
 WAV_FILE = STATE_DIR / "recording.wav"
+CLIP_PID_FILE = STATE_DIR / "clipboard.pid"
 
 log = logging.getLogger("whisperflow")
 
@@ -100,20 +102,58 @@ def default_source_name() -> str:
         return "?"
 
 
-def copy_to_clipboard(text: str) -> None:
-    (STATE_DIR / "last.txt").write_text(text)  # záloha – text se nesmí ztratit
-    # wl-copy na GNOME občas čeká na fokus; spustíme ho odpojeně a nečekáme na něj
-    proc = subprocess.Popen(["wl-copy"], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+def kill_stale_clipboard() -> None:
+    """Ukončí wl-copy z minulých běhů – zaseknutý by po získání fokusu přepsal schránku starým textem."""
+    try:
+        for pid in CLIP_PID_FILE.read_text().split():
+            try:
+                if Path(f"/proc/{pid}/comm").read_text().strip() == "wl-copy":
+                    os.kill(int(pid), signal.SIGTERM)
+            except (OSError, ValueError):
+                pass
+    except FileNotFoundError:
+        pass
+    CLIP_PID_FILE.unlink(missing_ok=True)
+
+
+def spawn_copy(cmd: list[str], text: str) -> subprocess.Popen:
+    # odpojeně a bez čekání – schránku drží proces, dokud ji nepřevezme někdo jiný
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL, start_new_session=True)
     proc.stdin.write(text.encode())
     proc.stdin.close()
+    return proc
+
+
+def copy_to_clipboard(text: str) -> bool:
+    (STATE_DIR / "last.txt").write_text(text)  # záloha – text se nesmí ztratit
+    kill_stale_clipboard()
+    # xclip jde přes XWayland a fokus nepotřebuje (GNOME schránku X11 převádí do Waylandu);
+    # wl-copy ze zkratky občas visí a čeká na fokus, proto je jen záloha
+    if os.environ.get("DISPLAY") and shutil.which("xclip"):
+        spawn_copy(["xclip", "-quiet", "-selection", "clipboard", "-i"], text)
+        time.sleep(0.2)
+        try:
+            owned = subprocess.run(["xclip", "-o", "-selection", "clipboard"],
+                                   capture_output=True, text=True, timeout=2).stdout
+            if owned.strip() == text.strip():
+                return True
+            log.warning("xclip: schránka neobsahuje nový text")
+        except subprocess.TimeoutExpired:
+            log.warning("xclip -o timeout")
+    proc = spawn_copy(["wl-copy"], text)
+    CLIP_PID_FILE.write_text(str(proc.pid))
     time.sleep(0.3)
-    try:
-        pasted = subprocess.run(["wl-paste", "-n"], capture_output=True, text=True, timeout=2).stdout
-        if pasted.strip() != text.strip():
-            log.warning("schránka neobsahuje nový text (wl-copy ještě nedoběhl?)")
-    except subprocess.TimeoutExpired:
-        log.warning("wl-paste timeout")
+    if proc.poll() is None:
+        # wl-copy po převzetí schránky zůstává běžet; viset může i wl-paste, proto jen timeout
+        try:
+            pasted = subprocess.run(["wl-paste", "-n"], capture_output=True, text=True, timeout=2).stdout
+            if pasted.strip() == text.strip():
+                return True
+        except subprocess.TimeoutExpired:
+            pass
+    log.warning("wl-copy: schránku se nepodařilo ověřit")
+    return False
 
 
 def process(cfg: dict) -> None:

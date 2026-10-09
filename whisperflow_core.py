@@ -134,7 +134,7 @@ def structure(cfg: dict, text: str) -> str:
 
 
 def run_pipeline(cfg: dict, wav: Path, notify, copy, source_name) -> None:
-    """Ticho → přepis → LLM → schránka. notify(title, body="", urgency=, timeout_ms=), copy(text), source_name()."""
+    """Ticho → přepis → LLM → schránka. notify(title, body="", urgency=, timeout_ms=), copy(text) → False při selhání, source_name()."""
     level = peak_db(wav)
     if level < cfg["silence_peak_db"]:
         source = source_name()
@@ -156,5 +156,7 @@ def run_pipeline(cfg: dict, wav: Path, notify, copy, source_name) -> None:
             copy(text)  # diktát nesmí přijít vniveč
             notify("⚠ LLM selhal – ve schránce je surový přepis", str(e)[:200], urgency="critical")
             return
-    copy(text)
+    if copy(text) is False:  # Linux vrací výsledek ověření, Windows None
+        notify("⚠ Schránka selhala – text je v last.txt", text[:300], urgency="critical")
+        return
     notify("✅ Ve schránce", text[:300])
